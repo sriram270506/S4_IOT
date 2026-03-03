@@ -1,0 +1,70 @@
+{
+  "network": {
+    "home_wifi_network": "192.168.1.0/24",
+    "ap_network": "192.168.88.0/24",
+    "controller_ip": "192.168.1.100",
+    "controller_port": 9000,
+    "ap_ip": "192.168.1.101",
+    "monitor_ip": "192.168.1.102",
+    "phone1_ap_ip": "192.168.88.11",
+    "phone2_ap_ip": "192.168.88.12",
+    "monitor_ap_ip": "192.168.88.100"
+  },
+  
+  "wifi": {
+    "ap_ssid": "SDN-TestNet",
+    "ap_channel_initial": 6,
+    "ap_channel_switch": 11,
+    "ap_interface": "wlan0",
+    "ap_dhcp_range_start": "192.168.88.10",
+    "ap_dhcp_range_end": "192.168.88.150",
+    "ap_gateway": "192.168.88.1"
+  },
+  
+  "experiment": {
+    "total_duration_seconds": 40,
+    "phase_setup_seconds": 2,
+    "phase_baseline_seconds": 10,
+    "phase_jammer_active_seconds": 10,
+    "phase_recovery_seconds": 18,
+    "metrics_collection_interval_seconds": 0.5
+  },
+  
+  "iperf3": {
+    "server_port": 5201,
+    "client_bandwidth_mbps": 10,
+    "client_duration_seconds": 40,
+    "protocol": "UDP"
+  },
+  
+  "jammer": {
+    "activation_time_seconds": 12,
+    "deactivation_time_seconds": 22,
+    "packet_size_bytes": 1500,
+    "packet_rate_pps": 8000,
+    "target": "broadcast"
+  },
+  
+  "detection": {
+    "packet_rate_threshold_pps": 5000,
+    "rssi_degradation_threshold_dbm": 15,
+    "throughput_loss_threshold_percent": 50,
+    "detection_confidence_threshold": 60,
+    "detection_check_interval_seconds": 1
+  },
+  
+  "controller_actions": {
+    "mac_blacklist_delay_seconds": 0.5,
+    "channel_switch_delay_seconds": 2.0,
+    "recovery_monitoring_duration_seconds": 8
+  },
+  
+  "logging": {
+    "log_level": "INFO",
+    "save_metrics": true,
+    "save_packet_capture": false,
+    "metrics_output_file": "sdn_testbed_metrics.json",
+    "events_output_file": "controller_events.json",
+    "dashboard_port": 8080
+  }
+}
