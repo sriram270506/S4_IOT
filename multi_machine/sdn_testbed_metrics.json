@@ -1,0 +1,30 @@
+{
+  "experiment_id": "SDN_TEST_20260303_194820",
+  "start_time": "2026-03-03T19:48:20.652790",
+  "end_time": "2026-03-03T19:49:04.662623",
+  "phases": {
+    "baseline": {
+      "duration": 10,
+      "status": "complete",
+      "expected_throughput_mbps": 9.0,
+      "expected_latency_ms": 15.0
+    },
+    "jammer_active": {
+      "duration": 10,
+      "status": "complete",
+      "expected_throughput_mbps": 1.5,
+      "expected_latency_ms": 250.0,
+      "jammer_packet_rate_pps": 8000
+    },
+    "recovery": {
+      "duration": 14,
+      "status": "complete",
+      "expected_throughput_mbps": 9.5,
+      "expected_latency_ms": 18.0,
+      "channel_switched": true,
+      "channel_new": 11
+    }
+  },
+  "controller_actions": [],
+  "metrics": []
+}

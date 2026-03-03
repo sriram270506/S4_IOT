@@ -1,0 +1,80 @@
+{
+  "system": {
+    "name": "3-Laptop Distributed SDN WiFi Testbed",
+    "architecture": "distributed",
+    "num_laptops": 3
+  },
+  "laptops": {
+    "laptop_1": {
+      "role": "SDN Controller",
+      "ip": "192.168.1.100",
+      "port": 9000,
+      "script": "sdn_controller.py",
+      "responsibilities": [
+        "Monitor network metrics",
+        "Detect jammer attacks",
+        "Make routing decisions",
+        "Send control commands to AP"
+      ]
+    },
+    "laptop_2": {
+      "role": "AP Agent",
+      "ip": "192.168.1.101",
+      "port": 9001,
+      "script": "ap_agent.py",
+      "responsibilities": [
+        "Simulate WiFi Access Point",
+        "Send network metrics (throughput, RSSI)",
+        "Execute channel switches",
+        "Manage virtual clients"
+      ]
+    },
+    "laptop_3": {
+      "role": "Monitor & Jammer Agent",
+      "ip": "192.168.1.102",
+      "port": 9002,
+      "script": "monitor_agent.py",
+      "responsibilities": [
+        "Monitor packet rates",
+        "Generate jammer traffic (UDP flood)",
+        "Simulate network congestion",
+        "Send metrics to controller"
+      ]
+    }
+  },
+  "experiment": {
+    "duration_seconds": 35,
+    "phases": {
+      "baseline": {
+        "duration": 10,
+        "description": "Clean network, no jammer"
+      },
+      "attack": {
+        "duration": 10,
+        "description": "Jammer active, UDP flood at 8000 pps"
+      },
+      "recovery": {
+        "duration": 15,
+        "description": "Channel switched, jammer isolated"
+      }
+    }
+  },
+  "network": {
+    "initial_channel": 6,
+    "switched_channel": 11,
+    "baseline_throughput_mbps": 8.5,
+    "attack_throughput_mbps": 0.8,
+    "recovery_throughput_mbps": 8.7,
+    "jammer_packet_rate_pps": 8000
+  },
+  "detection_thresholds": {
+    "throughput_min_mbps": 2.0,
+    "rssi_max_dbm": -60,
+    "packet_rate_min_pps": 5000
+  },
+  "dashboard": {
+    "host": "0.0.0.0",
+    "port": 5000,
+    "update_interval_ms": 1000
+  }
+}

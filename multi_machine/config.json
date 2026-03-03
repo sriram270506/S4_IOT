@@ -1,70 +1,246 @@
 {
+  "system": {
+    "deployment_mode": "single_laptop_multi_role",
+    "description": "Single laptop running SDN controller, AP, DHCP, monitoring, and jammer detection",
+    "demo_optimized": true,
+    "stability_focus": true
+  },
+
   "network": {
-    "home_wifi_network": "192.168.1.0/24",
-    "ap_network": "192.168.88.0/24",
-    "controller_ip": "192.168.1.100",
-    "controller_port": 9000,
-    "ap_ip": "192.168.1.101",
-    "monitor_ip": "192.168.1.102",
-    "phone1_ap_ip": "192.168.88.11",
-    "phone2_ap_ip": "192.168.88.12",
-    "monitor_ap_ip": "192.168.88.100"
+    "uplink": {
+      "interface": "wlo1",
+      "ip_address": "10.12.188.184",
+      "netmask": "255.255.240.0",
+      "subnet_cidr": "10.12.176.0/20",
+      "gateway_auto": true,
+      "description": "Home WiFi uplink for internet access and inter-laptop communication (if multi-device testing)"
+    },
+
+    "ap": {
+      "mode": "single_laptop_ap",
+      "interface": "ap0",
+      "ssid": "SDN-TestNet",
+      "hw_mode": "g",
+      "channel": 6,
+      "channel_switch_target": 11,
+      "ip_address": "192.168.88.1",
+      "netmask": "255.255.255.0",
+      "subnet_cidr": "192.168.88.0/24",
+      "description": "Virtual AP created on same laptop (hostapd)"
+    },
+
+    "dhcp": {
+      "server_interface": "ap0",
+      "server_ip": "192.168.88.1",
+      "dhcp_range_start": "192.168.88.10",
+      "dhcp_range_end": "192.168.88.200",
+      "dhcp_lease_time": "3600s",
+      "tool": "dnsmasq",
+      "description": "DHCP server assigns IPs to phones connecting to AP"
+    },
+
+    "nat": {
+      "enabled": true,
+      "source_interface": "ap0",
+      "dest_interface": "wlo1",
+      "masquerade_rule": "MASQUERADE",
+      "forwarding_enabled": true,
+      "description": "Optional NAT: forward AP clients (192.168.88.0/24) to internet via wlo1 (10.12.x.x)"
+    },
+
+    "controller": {
+      "ip_address": "192.168.88.1",
+      "port": 9000,
+      "bind_interface": "ap0",
+      "role_description": "SDN controller listens on AP interface to manage AP metrics and decisions"
+    },
+
+    "monitor": {
+      "ip_address": "192.168.88.1",
+      "port": 9001,
+      "bind_interface": "ap0",
+      "role_description": "Monitor/jammer agent on same laptop, acts as aggressive traffic source"
+    }
   },
-  
-  "wifi": {
-    "ap_ssid": "SDN-TestNet",
-    "ap_channel_initial": 6,
-    "ap_channel_switch": 11,
-    "ap_interface": "wlan0",
-    "ap_dhcp_range_start": "192.168.88.10",
-    "ap_dhcp_range_end": "192.168.88.150",
-    "ap_gateway": "192.168.88.1"
+
+  "phones": {
+    "phone_count": 2,
+    "description": "Real WiFi phones connecting via hostapd AP",
+    "auto_assign": true,
+    "ip_pool": "192.168.88.10-200",
+    "phone_1": {
+      "name": "Phone1",
+      "role": "iperf3_server",
+      "expected_ip": "auto_assign",
+      "description": "Runs iperf3 -s (server) listening for throughput measurements"
+    },
+    "phone_2": {
+      "name": "Phone2",
+      "role": "optional_secondary",
+      "expected_ip": "auto_assign",
+      "description": "Second phone for redundancy or dual throughput tests (optional)"
+    }
   },
-  
+
   "experiment": {
-    "total_duration_seconds": 40,
-    "phase_setup_seconds": 2,
+    "duration_sec": 40,
     "phase_baseline_seconds": 10,
     "phase_jammer_active_seconds": 10,
-    "phase_recovery_seconds": 18,
-    "metrics_collection_interval_seconds": 0.5
+    "phase_recovery_seconds": 14,
+    "phases": {
+      "phase_1_setup": {
+        "duration_sec": 2,
+        "description": "Start controller, AP, DHCP, monitor agents"
+      },
+      "phase_2_baseline": {
+        "duration_sec": 10,
+        "description": "Collect metrics on clean network (no jammer)"
+      },
+      "phase_3_jammer_active": {
+        "duration_sec": 10,
+        "description": "UDP packet flood active, measure degradation"
+      },
+      "phase_4_detection": {
+        "duration_sec": 1,
+        "description": "Controller detects jammer and triggers response"
+      },
+      "phase_5_response": {
+        "duration_sec": 3,
+        "description": "MAC blacklist (immediate) + channel switch (delayed 2s)"
+      },
+      "phase_6_recovery": {
+        "duration_sec": 14,
+        "description": "Network recovery measurement"
+      }
+    }
   },
-  
-  "iperf3": {
-    "server_port": 5201,
-    "client_bandwidth_mbps": 10,
-    "client_duration_seconds": 40,
-    "protocol": "UDP"
-  },
-  
+
   "jammer": {
-    "activation_time_seconds": 12,
-    "deactivation_time_seconds": 22,
-    "packet_size_bytes": 1500,
+    "mode": "pseudo_jammer_udp",
+    "enabled": true,
+    "source_ip": "192.168.88.1",
+    "target_broadcast": "192.168.88.255",
+    "target_port": 12345,
     "packet_rate_pps": 8000,
-    "target": "broadcast"
+    "packet_size_bytes": 1500,
+    "description": "UDP flood from controller laptop to broadcast address"
   },
-  
+
   "detection": {
-    "packet_rate_threshold_pps": 5000,
-    "rssi_degradation_threshold_dbm": 15,
-    "throughput_loss_threshold_percent": 50,
-    "detection_confidence_threshold": 60,
-    "detection_check_interval_seconds": 1
+    "algorithm": "multi_factor_confidence_scoring",
+    "factors": {
+      "packet_rate": {
+        "threshold_pps": 5000,
+        "confidence_points": 40,
+        "description": "Anomalously high packet rate from single source"
+      },
+      "rssi_degradation": {
+        "threshold_dbm": 15,
+        "confidence_points": 30,
+        "description": "RSSI drop indicating interference"
+      },
+      "throughput_loss": {
+        "threshold_percent": 50,
+        "confidence_points": 30,
+        "description": "Significant throughput reduction"
+      }
+    },
+    "confidence_threshold": 60,
+    "detection_window_sec": 2,
+    "description": "Jammer detected when confidence >= 60 points"
   },
-  
-  "controller_actions": {
-    "mac_blacklist_delay_seconds": 0.5,
-    "channel_switch_delay_seconds": 2.0,
-    "recovery_monitoring_duration_seconds": 8
+
+  "response": {
+    "strategy": "dual_action_sequential",
+    "actions": [
+      {
+        "action_id": 1,
+        "name": "MAC_BLACKLIST",
+        "trigger_time_offset_sec": 0,
+        "target": "ap0_hostapd",
+        "command": "hostapd_cli deny_acl add [source_mac]",
+        "effect": "Immediate (blocks jammer traffic)",
+        "description": "Add jammer MAC to blacklist"
+      },
+      {
+        "action_id": 2,
+        "name": "CHANNEL_SWITCH",
+        "trigger_time_offset_sec": 2,
+        "target": "ap0_hostapd",
+        "command": "hostapd_cli set_channel 11",
+        "effect": "Delayed (escapes interference)",
+        "description": "Switch from channel 6 to 11 to escape jammer"
+      }
+    ]
   },
-  
+
+  "metrics_collection": {
+    "interval_sec": 2,
+    "sources": {
+      "ap_metrics": {
+        "interface": "ap0",
+        "metrics": ["connected_clients", "rssi_per_client", "channel_utilization", "txrate"],
+        "tool": "iw"
+      },
+      "throughput": {
+        "target": "192.168.88.10",
+        "port": 5201,
+        "duration_sec": 5,
+        "tool": "iperf3",
+        "description": "Measure TCP throughput from controller to phone"
+      },
+      "latency": {
+        "target": "8.8.8.8",
+        "count": 5,
+        "timeout_sec": 2,
+        "tool": "ping"
+      },
+      "packet_rate": {
+        "interface": "ap0",
+        "method": "netstat_or_ss",
+        "description": "Packets per second on AP interface"
+      }
+    }
+  },
+
   "logging": {
-    "log_level": "INFO",
-    "save_metrics": true,
-    "save_packet_capture": false,
+    "level": "INFO",
+    "console_output": true,
+    "file_output": true,
+    "results_file": "sdn_testbed_metrics.json",
     "metrics_output_file": "sdn_testbed_metrics.json",
-    "events_output_file": "controller_events.json",
-    "dashboard_port": 8080
+    "log_file": "sdn_testbed.log"
+  },
+
+  "deprecated_fields_removed": {
+    "reason": "Single-laptop refactor",
+    "removed": [
+      "network.home_wifi_network (was 192.168.1.0/24 - incorrect subnet)",
+      "network.controller_ip_home (redundant - single machine)",
+      "network.ap_ip_home (redundant - single machine)",
+      "network.monitor_ip_home (redundant - single machine)",
+      "network.phone_client_ips (now uses DHCP auto-assign)",
+      "deployment.multi_machine_orchestration (now single-machine)",
+      "agent_communication.controller_server_port (now implicit via AP interface)",
+      "agent_communication.ap_command_port (now implicit via hostapd_cli)"
+    ],
+    "refactor_notes": "Simplified to single laptop running all roles. All components communicate via local socket or loopback (127.0.0.1) or AP interface (192.168.88.1). No remote TCP/UDP communication needed."
+  },
+
+  "architecture_notes": {
+    "single_laptop_roles": [
+      "Role 1: SDN Controller - Listens on 192.168.88.1:9000, implements detection logic, sends commands to hostapd",
+      "Role 2: Access Point - hostapd on ap0, SSID 'SDN-TestNet', gateway 192.168.88.1",
+      "Role 3: DHCP Server - dnsmasq assigns IPs from 192.168.88.10-200 to phones",
+      "Role 4: Monitor Agent - Measures throughput/latency, generates jammer traffic",
+      "Role 5: Jammer Detection - Monitors metrics, triggers response when conditions met"
+    ],
+    "logical_separation": "Even though physically single machine, roles are logically distinct (controller logic, AP management, monitoring). Can be split to separate machines later by changing IP config.",
+    "communication_flow": {
+      "controller_to_ap": "localhost socket or hostapd_cli commands (no network latency)",
+      "ap_to_phones": "WiFi (192.168.88.0/24 subnet)",
+      "monitor_to_controller": "local socket (127.0.0.1:9001) or inter-process",
+      "phones_to_internet": "NAT through wlo1 (optional, for real internet access)"
+    }
   }
 }
